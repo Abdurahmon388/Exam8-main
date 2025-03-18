@@ -117,8 +117,8 @@ SWAGGER_SETTINGS = {
         }
     },
     'USE_SESSION_AUTH': False, 
-    'JSON_EDITOR': True,
-    'DEFAULT_INFO': 'Config.urls.api_info',
+    # 'JSON_EDITOR': True,
+    # 'DEFAULT_INFO': 'Config.urls.api_info',
 
 }
 
