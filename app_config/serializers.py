@@ -7,6 +7,10 @@ from django.contrib.auth.hashers import make_password
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.fields import DateField
+from rest_framework.serializers import Serializer
+
+
 
 User = get_user_model()
 
@@ -179,23 +183,18 @@ class ParentSerializer(serializers.ModelSerializer):
 class UserAndStudentSerializer(serializers.Serializer):
     user = UserSerializer()
     student = StudentSerializer()
-    parent = ParentSerializer()
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         student_data = validated_data.pop('student')
-        parent_data = validated_data.pop('parent')
-
+       
         # User yaratish
         user = User.objects.create_user(**user_data, is_student=True)
 
         # Student yaratish
         student = Student.objects.create(user=user, **student_data)
 
-        # Ota-ona yaratish
-        parent = Parent.objects.create(student=student, **parent_data)
-
-        return {'user': user, 'student': student, 'parent': parent}
+        return {'user': user, 'student': student}
 
 
 
@@ -339,3 +338,8 @@ class StatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Status
         fields = "__all__"
+        
+
+class DateFilterSerializer(Serializer):
+    start_date = DateField(required=True)
+    end_date = DateField(required=True)

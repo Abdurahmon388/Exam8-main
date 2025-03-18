@@ -105,78 +105,42 @@ class UserDetailView(generics.RetrieveAPIView):
     serializer_class = UserAllSerializer
     lookup_field = 'id'
     permission_classes = [AdminUser]
+from datetime import datetime
 
-class StudentStatisticView(generics.GenericAPIView):
-    serializer_class = StudentStatisticSerializer
-    permission_classes = [IsAuthenticated]
+from django.db.models import Count, Q, Sum
+from django.utils.timezone import make_aware
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAdminUser
 
-    @swagger_auto_schema(request_body=StudentStatisticSerializer)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            start_date = serializer.validated_data["start_date"]
-            end_date = serializer.validated_data["end_date"]
-            student_count = Student.objects.filter(created__range=[start_date, end_date]).count()
-            return Response({"student_count": student_count}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+class StudentFilterView(APIView):
+    permission_classes = [IsAdminUser]
 
-class TeacherStatisticView(generics.GenericAPIView):
-    serializer_class = TeacherStatisticSerializer
-    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(request_body=DateFilterSerializer)
+    def post(self, request):
+        serializer = DateFilterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(request_body=TeacherStatisticSerializer)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            start_date = serializer.validated_data["start_date"]
-            end_date = serializer.validated_data["end_date"]
-            teacher_count = Teacher.objects.filter(created__range=[start_date, end_date]).count()
-            return Response({"teacher_count": teacher_count}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        start_date = serializer.validated_data['start_date']
+        end_date = serializer.validated_data['end_date']
 
+        start_date = make_aware(datetime.combine(start_date, datetime.min.time()))
+        end_date = make_aware(datetime.combine(end_date, datetime.max.time()))
 
-class AttendanceStatisticView(generics.GenericAPIView):
-    serializer_class = AttendanceStatisticSerializer
-    permission_classes = [IsAuthenticated]
+        total_students = Student.objects.count()
+        graduated_students = Student.objects.filter(group__active=False, created_at__range=[start_date, end_date]).count()
+        studying_students = Student.objects.filter(group__active=True, created_at__range=[start_date, end_date]).count()
+        registered_students = Student.objects.filter(created_at__range=[start_date, end_date]).count()
 
-    @swagger_auto_schema(request_body=AttendanceStatisticSerializer)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            start_date = serializer.validated_data["start_date"]
-            end_date = serializer.validated_data["end_date"]
-            attendance_count = Attendance.objects.filter(created__range=[start_date, end_date]).count()
-            return Response({"attendance_count": attendance_count}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class CourseStatisticView(generics.GenericAPIView):
-    serializer_class = CourseStatisticSerializer
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(request_body=CourseStatisticSerializer)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            start_date = serializer.validated_data["start_date"]
-            end_date = serializer.validated_data["end_date"]
-            course_count = Course.objects.filter(created__range=[start_date, end_date]).count()
-            return Response({"course_count": course_count}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class GroupStatisticView(generics.GenericAPIView):
-    serializer_class = GroupStatisticSerializer
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(request_body=GroupStatisticSerializer)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            start_date = serializer.validated_data["start_date"]
-            end_date = serializer.validated_data["end_date"]
-            group_count = Group.objects.filter(created__range=[start_date, end_date]).count()
-            return Response({"group_count": group_count}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "total_students": total_students,
+            "registered_students": registered_students,
+            "studying_students": studying_students,
+            "graduated_students": graduated_students,
+        }, status=status.HTTP_200_OK)
 
 class CreateSuperUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -463,65 +427,65 @@ class TableViewSet(viewsets.ModelViewSet):
 
 # Student va Parent
 
-class StudentViewSet(viewsets.ModelViewSet):
-    """Student CRUD API - qo'shish, ko'rish, yangilash, o‘chirish"""
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-    permission_classes = [IsAuthenticated]
+# class StudentViewSet(viewsets.ModelViewSet):
+#     """Student CRUD API - qo'shish, ko'rish, yangilash, o‘chirish"""
+#     queryset = Student.objects.all()
+#     serializer_class = StudentSerializer
+#     permission_classes = [IsAuthenticated]
 
 
-    def create(self, request, *args, **kwargs):
-        """Yangi student qo‘shish"""
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"status": True, "message": "Student muvaffaqiyatli qo‘shildi!", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"status": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+#     def create(self, request, *args, **kwargs):
+#         """Yangi student qo‘shish"""
+#         serializer = self.get_serializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({"status": True, "message": "Student muvaffaqiyatli qo‘shildi!", "data": serializer.data}, status=status.HTTP_201_CREATED)
+#         return Response({"status": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['GET'])
-    def studying(self, request):
-        """O‘qiyotgan studentlar"""
-        start_date = request.GET.get("start_date")
-        end_date = request.GET.get("end_date")
-        if not start_date or not end_date:
-            return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
+#     @action(detail=False, methods=['GET'])
+#     def studying(self, request):
+#         """O‘qiyotgan studentlar"""
+#         start_date = request.GET.get("start_date")
+#         end_date = request.GET.get("end_date")
+#         if not start_date or not end_date:
+#             return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
 
-        students = Student.objects.filter(
-            Q(group__start_date__lte=end_date) & Q(group__end_date__gte=start_date)
-        ).distinct()
+#         students = Student.objects.filter(
+#             Q(group__start_date__lte=end_date) & Q(group__end_date__gte=start_date)
+#         ).distinct()
 
-        serializer = self.get_serializer(students, many=True)
-        return Response(serializer.data)
+#         serializer = self.get_serializer(students, many=True)
+#         return Response(serializer.data)
 
-    @action(detail=False, methods=['GET'])
-    def graduated(self, request):
-        """Bitirgan studentlar"""
-        start_date = request.GET.get("start_date")
-        end_date = request.GET.get("end_date")
-        if not start_date or not end_date:
-            return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
+#     @action(detail=False, methods=['GET'])
+#     def graduated(self, request):
+#         """Bitirgan studentlar"""
+#         start_date = request.GET.get("start_date")
+#         end_date = request.GET.get("end_date")
+#         if not start_date or not end_date:
+#             return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
 
-        students = Student.objects.filter(
-            Q(group__end_date__gte=start_date) & Q(group__end_date__lte=end_date)
-        ).distinct()
+#         students = Student.objects.filter(
+#             Q(group__end_date__gte=start_date) & Q(group__end_date__lte=end_date)
+#         ).distinct()
 
-        serializer = self.get_serializer(students, many=True)
-        return Response(serializer.data)
+#         serializer = self.get_serializer(students, many=True)
+#         return Response(serializer.data)
 
-    @action(detail=False, methods=['GET'])
-    def enrolled(self, request):
-        """Qabul qilingan studentlar"""
-        start_date = request.GET.get("start_date")
-        end_date = request.GET.get("end_date")
-        if not start_date or not end_date:
-            return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
+#     @action(detail=False, methods=['GET'])
+#     def enrolled(self, request):
+#         """Qabul qilingan studentlar"""
+#         start_date = request.GET.get("start_date")
+#         end_date = request.GET.get("end_date")
+#         if not start_date or not end_date:
+#             return Response({"error": "start_date va end_date berilishi shart!"}, status=400)
 
-        students = Student.objects.filter(
-            Q(created__gte=start_date) & Q(created__lte=end_date)
-        ).distinct()
+#         students = Student.objects.filter(
+#             Q(created__gte=start_date) & Q(created__lte=end_date)
+#         ).distinct()
 
-        serializer = self.get_serializer(students, many=True)
-        return Response(serializer.data)
+#         serializer = self.get_serializer(students, many=True)
+#         return Response(serializer.data)
 
 
 class ParentViewSet(viewsets.ViewSet):
@@ -885,32 +849,6 @@ class ProtectedAPIView(APIView):
     def get(self, request):
         return Response({"message": "Siz muvaffaqiyatli autentifikatsiyadan o‘tdingiz!"})
 
-
-class StudentCreateAPIView(APIView):
-    permission_classes = [AdminUser]
-
-    @swagger_auto_schema(request_body=UserAndStudentSerializer)
-    def post(self, request):
-
-        user_data = request.data.get('user', {})
-        user_serializer = UserSerializer(data=user_data)
-
-        if user_serializer.is_valid():
-            user = user_serializer.save(is_student=True)
-        else:
-            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        student_data = request.data.get('student', {})
-        student_serializer = StudentSerializer(data=student_data)
-
-        if student_serializer.is_valid():
-            student = student_serializer.save(user=user)
-            return Response(student_serializer.data, status=status.HTTP_201_CREATED)
-
-        else:
-            user.delete()
-            return Response(student_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
 class StudentGroupsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -935,6 +873,36 @@ class StudentListCreateAPIView(generics.ListCreateAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated]
+
+
+class StudentCreateAPIView(APIView):
+    permission_classes = [AdminUser]
+
+    @swagger_auto_schema(request_body=UserAndStudentSerializer)
+    def post(self, request):
+
+        user_data = request.data.get('user', {})
+        user_serializer = UserSerializer(data=user_data)
+
+        if user_serializer.is_valid():
+            user = user_serializer.save(is_student=True)
+        else:
+            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        student_data = request.data.get('student', {})
+        student_serializer = StudentSerializer(data=student_data)
+
+        if student_serializer.is_valid():
+            phone = user_data.get('phone')
+            user_s = User.objects.get(phone=phone)
+            student_serializer.validated_data['user'] = user_s
+            student_serializer.save()
+            return Response(student_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            user.delete()
+            return Response(student_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class StudentRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Student.objects.all()

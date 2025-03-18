@@ -16,7 +16,7 @@ router.register(r'homework-reviews', GroupHomeWorkViewSet, basename='homeworkrev
 router.register(r'homework-submissions', HomeWorkViewSet, basename='homeworksubmission')
 router.register(r'table-types', TableTypeViewSet, basename='tabletype')
 router.register(r'tables', TableViewSet, basename='table')
-router.register(r'students', StudentViewSet, basename='student')
+# router.register(r'students', , basename='student')
 router.register(r'parent', ParentViewSet, basename='parent')
 router.register(r'workers', WorkerViewSet, basename='worker')
 router.register(r'comments', CommentViewSet, basename='comment')
@@ -29,7 +29,7 @@ router.register(r'statuses', StatusViewSet, basename='status')
 urlpatterns = [
     path('', UserListView.as_view(), name='user-list'), 
     path('user/<int:id>/', UserDetailView.as_view(), name='user-detail'), 
-
+    
     path('create/student/', StudentCreateAPIView.as_view(), name='create-student'),
     path('create/teacher/', TeacherCreateAPIView.as_view(), name='create-teacher'),
     
@@ -49,6 +49,7 @@ urlpatterns = [
     path('users/create/user/', UserCreateView.as_view(), name='create-user'),
     path("users/create/superuser/", CreateSuperUserView.as_view(), name="create-superuser"),
     path('users/student-groups/<int:student_id>/', StudentGroupsView.as_view(), name='student-groups'),
+    path('users/student/user/', StudentCreateAPIView.as_view(), name='student-userlari'),
 
     path('teachers/<int:teacher_id>/groups/', teacher_group_list, name='teacher-group-list'),
 
@@ -57,12 +58,8 @@ urlpatterns = [
     path("auth/logout/", LogoutView.as_view(), name="logout"),
     path("auth/me/", CurrentUserView.as_view(), name="me"),
     
-    path("statistics/students-statistic/", StudentStatisticView.as_view(), name="students-statistic"),
-    path("statistics/teachers-statistic/", TeacherStatisticView.as_view(), name="teachers-statistic"),
-    path("statistics/attendance-statistics/", AttendanceStatisticView.as_view(), name="attendance-statistics"),
-    path("statistics/courses-statistics/", CourseStatisticView.as_view(), name="courses-statistics"),
-    path("statistics/groups-statistics/", GroupStatisticView.as_view(), name="groups-statistics"),
-
+    path('students-statistic/', StudentFilterView.as_view(), name='recent-students'),
+     
     path('api/token/', TokenObtainSlidingView.as_view(), name='token_obtain'),
     path('api/token/refresh/', TokenRefreshSlidingView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
