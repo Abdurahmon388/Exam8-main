@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
-from drf_yasg.openapi import Parameter, IN_HEADER
+# from drf_yasg.openapi import Parameter, IN_HEADER
 from decouple import config 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
